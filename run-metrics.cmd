@@ -33,7 +33,7 @@ echo.
 
 REM Step 1: Run the benchmark
 echo [1/4] Running European regional benchmarks...
-echo This may take 1-2 minutes to test all regions.
+echo This may take 5-10 minutes to test all regions.
 echo.
 python benchmark_european_regions.py
 if errorlevel 1 (

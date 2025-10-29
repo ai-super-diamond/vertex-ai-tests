@@ -55,7 +55,7 @@ def get_performance_color(value, max_val, min_val):
 
 
 def convert_csv_to_pdf(csv_file, output_pdf=None):
-    """Convert CSV benchmark results to elegant PDF"""
+    """Convert CSV benchmark results to elegant PDF with averaged values"""
 
     # Generate output filename if not provided
     if output_pdf is None:
@@ -63,17 +63,56 @@ def convert_csv_to_pdf(csv_file, output_pdf=None):
         output_pdf = f"./results/benchmark-report-{timestamp}.pdf"
 
     # Read CSV data
-    data = []
+    raw_data = []
     with open(csv_file, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             # Filter out US regions
             if not row['region'].startswith('us-'):
-                data.append(row)
+                raw_data.append(row)
 
-    if not data:
+    if not raw_data:
         print("No European data found in CSV!")
         return
+
+    # Determine number of cycles from the data
+    num_cycles = max(int(row['#Cycle']) for row in raw_data)
+
+    # Calculate averages per region across all cycles
+    region_data = {}
+    for row in raw_data:
+        region = row['region']
+        if region not in region_data:
+            region_data[region] = {
+                'pro_times': [],
+                'flash_times': [],
+                'garden_models': row['Garden Models']
+            }
+
+        # Parse and collect times
+        pro_time = parse_time(row['Pro'])
+        flash_time = parse_time(row['Flash'])
+
+        if pro_time is not None:
+            region_data[region]['pro_times'].append(pro_time)
+        if flash_time is not None:
+            region_data[region]['flash_times'].append(flash_time)
+
+    # Create averaged data for PDF
+    data = []
+    for region, values in region_data.items():
+        avg_pro = sum(values['pro_times']) / len(values['pro_times']) if values['pro_times'] else None
+        avg_flash = sum(values['flash_times']) / len(values['flash_times']) if values['flash_times'] else None
+
+        data.append({
+            'region': region,
+            'Pro': f"{avg_pro:.2f}ms" if avg_pro is not None else "Not Available",
+            'Flash': f"{avg_flash:.2f}ms" if avg_flash is not None else "Not Available",
+            'Garden Models': values['garden_models']
+        })
+
+    # Sort by region name for consistent ordering
+    data.sort(key=lambda x: x['region'])
 
     # Create PDF
     doc = SimpleDocTemplate(output_pdf, pagesize=A4,
@@ -116,7 +155,8 @@ def convert_csv_to_pdf(csv_file, output_pdf=None):
 
     # Title
     elements.append(Paragraph("Vertex AI Gemini 2.5 Performance Benchmark", title_style))
-    elements.append(Paragraph(f"European Regions - {datetime.now().strftime('%d %B %Y')}", subtitle_style))
+    elements.append(
+        Paragraph(f"European Regions - Averaged Results - {datetime.now().strftime('%d %B %Y')}", subtitle_style))
     elements.append(Spacer(1, 0.2 * inch))
 
     # Calculate statistics
@@ -283,7 +323,9 @@ def convert_csv_to_pdf(csv_file, output_pdf=None):
         alignment=TA_CENTER
     )
     elements.append(Paragraph(f"Generated on {datetime.now().strftime('%d %B %Y at %H:%M')}", footer_style))
-    elements.append(Paragraph("Performance measured as end-to-end response time for simple prompt", footer_style))
+    elements.append(
+        Paragraph(f"Performance measured as averaged end-to-end response time across {num_cycles} test prompts",
+                  footer_style))
 
     # Build PDF
     doc.build(elements)

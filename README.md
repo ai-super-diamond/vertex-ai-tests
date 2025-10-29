@@ -9,6 +9,7 @@ performance reports.
 The project offers automated benchmarking tools for Vertex AI Gemini models:
 
 - **Regional Performance Testing:** Measure response times for Gemini 2.5 Pro and Flash across European regions
+- **Multi-Cycle Testing:** Run multiple different prompts per region for comprehensive, averaged results
 - **Model Availability Tracking:** Identify which regions support specific Gemini models
 - **Automated PDF Reports:** Generate elegant, professional PDF reports with color-coded performance metrics
 - **Easy-to-Use Scripts:** Simple command-line tools to run benchmarks and generate reports
@@ -101,11 +102,15 @@ The PDF includes:
 vertex-ai-tests/
 ├── benchmark_european_regions.py  # Main benchmarking script
 ├── csv_to_pdf_converter.py       # PDF report generator
+├── test_pdf_generation.py         # Test script for PDF generation
 ├── run-metrics.cmd                # Windows automation script
 ├── requirements.txt               # Python dependencies
 ├── results/                       # Generated CSV and PDF reports
 │   ├── results-*.csv
 │   └── benchmark-report-*.pdf
+├── test_results/                  # Test output directory (gitignored)
+│   ├── test_*.csv
+│   └── test_report_*.pdf
 ├── README.md                      # This file
 └── AGENTS.md                      # AI agent guidelines
 ```
@@ -141,19 +146,31 @@ Automatically tests Gemini 2.5 Pro and Flash models across **10 European Regions
 
 ### CSV Format
 
+The CSV includes all individual measurements with cycle numbers:
+
 ```csv
-region,Pro,Flash,Garden Models
-europe-west1,2757.05ms,957.13ms,0
-europe-west4,3785.89ms,816.24ms,0
+#Cycle,region,Pro,Flash,Garden Models
+1,europe-west1,2757.05ms,957.13ms,0
+2,europe-west1,2801.23ms,945.67ms,0
+...
+N,europe-west1,2723.45ms,963.89ms,0
+1,europe-west4,3785.89ms,816.24ms,0
+...
 ```
+
+Each region is tested multiple times with different prompts (currently 10), resulting in N records per region where N =
+number of test prompts.
 
 ### PDF Report
 
-- Title: "Vertex AI Gemini 2.5 Performance Benchmark"
-- Summary statistics table
-- Detailed performance table with color coding
+The PDF report shows **averaged results** across all test cycles:
+
+- Title: "Vertex AI Gemini 2.5 Performance Benchmark - Averaged Results"
+- Summary statistics table (based on averages)
+- Detailed performance table with color coding (averaged values)
 - Key insights and fastest regions
 - Professional styling with timestamps
+- Footer note: "Performance measured as averaged end-to-end response time across N test prompts"
 
 ## Configuration
 
@@ -201,6 +218,25 @@ Enable the Vertex AI API in your GCP project:
 ```bash
 gcloud services enable aiplatform.googleapis.com
 ```
+
+## Testing
+
+### Test PDF Generation
+
+Run the test script to verify PDF generation with different cycle counts:
+
+```bash
+python test_pdf_generation.py
+```
+
+This will create test CSV files and generate PDFs with:
+
+- 10 cycles (standard)
+- 5 cycles (custom)
+- 1 cycle (edge case)
+- 20 cycles (extended)
+
+Test results are saved to `./test_results/` directory.
 
 ## Contributing
 

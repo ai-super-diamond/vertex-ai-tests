@@ -31,14 +31,29 @@ MODELS = {
     "Flash": ["gemini-2.5-flash", "gemini-2.5-flash-exp", "gemini-2.5-flash-002", "gemini-flash-2.5"]
 }
 
-# Simple test prompt
-TEST_PROMPT = "Hello, respond with just 'OK'"
+# Test prompts - 10 different prompts for comprehensive benchmarking
+TEST_PROMPTS = [
+    "Hello, respond with just 'OK'",
+    "What is 2+2? Answer briefly.",
+    "Name one color.",
+    "Say 'test' in response.",
+    "What day comes after Monday?",
+    "Count from 1 to 3.",
+    "What is the capital of France?",
+    "Translate 'hello' to Spanish.",
+    "What is the opposite of hot?",
+    "Name one programming language."
+]
+
+# Calculate number of cycles based on prompts
+NUM_CYCLES = len(TEST_PROMPTS)
 
 print("=" * 60)
 print("Vertex AI European Regions Benchmark")
 print("=" * 60)
 print(f"Project: {PROJECT_ID}")
 print(f"Testing {len(EUROPEAN_LOCATIONS)} European locations")
+print(f"Running {NUM_CYCLES} cycles per region")
 print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("=" * 60)
 print()
@@ -48,92 +63,88 @@ results = []
 for location in EUROPEAN_LOCATIONS:
     print(f"\n[{location}] Starting tests...")
 
-    result = {
-        "region": location,
-        "Pro": "N/A",
-        "Flash": "N/A",
-        "Garden Models": 0
-    }
+    # Create client once per region
+    client = genai.Client(
+        vertexai=True,
+        project=PROJECT_ID,
+        location=location
+    )
 
-    # Test Gemini Pro response time - try multiple model names
-    pro_success = False
-    for model_name in MODELS["Pro"]:
-        try:
-            print(f"  Testing Gemini Pro ({model_name})...")
-            client = genai.Client(
-                vertexai=True,
-                project=PROJECT_ID,
-                location=location
-            )
-
-            start_time = time.time()
-            response = client.models.generate_content(
-                model=model_name,
-                contents=TEST_PROMPT
-            )
-            end_time = time.time()
-
-            pro_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
-            result["Pro"] = f"{pro_time}ms"
-            print(f"    ✓ Pro ({model_name}): {pro_time}ms")
-            pro_success = True
-            break
-
-        except Exception as e:
-            print(f"    ✗ {model_name} not available")
-            continue
-
-    if not pro_success:
-        result["Pro"] = "Not Available"
-        print(f"    ✗ Pro: No models available")
-
-    # Test Gemini Flash response time - try multiple model names
-    flash_success = False
-    for model_name in MODELS["Flash"]:
-        try:
-            print(f"  Testing Gemini Flash ({model_name})...")
-            client = genai.Client(
-                vertexai=True,
-                project=PROJECT_ID,
-                location=location
-            )
-
-            start_time = time.time()
-            response = client.models.generate_content(
-                model=model_name,
-                contents=TEST_PROMPT
-            )
-            end_time = time.time()
-
-            flash_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
-            result["Flash"] = f"{flash_time}ms"
-            print(f"    ✓ Flash ({model_name}): {flash_time}ms")
-            flash_success = True
-            break
-
-        except Exception as e:
-            print(f"    ✗ {model_name} not available")
-            continue
-
-    if not flash_success:
-        result["Flash"] = "Not Available"
-        print(f"    ✗ Flash: No models available")
-
-    # Count Garden Models (registered models in the project)
+    # Count Garden Models once per region (not per cycle)
+    garden_model_count = 0
     try:
         print(f"  Counting models...")
         aiplatform.init(project=PROJECT_ID, location=location)
         models = aiplatform.Model.list()
-        model_count = len(models)
-        result["Garden Models"] = model_count
-        print(f"    ✓ Models: {model_count}")
-
+        garden_model_count = len(models)
+        print(f"    ✓ Models: {garden_model_count}")
     except Exception as e:
-        result["Garden Models"] = "Error"
+        garden_model_count = "Error"
         print(f"    ✗ Model count failed: {str(e)[:100]}")
 
-    results.append(result)
-    print(f"[{location}] Completed")
+    # Run all prompt cycles for this region
+    for cycle_num, test_prompt in enumerate(TEST_PROMPTS, start=1):
+        print(f"\n  [Cycle {cycle_num}/{NUM_CYCLES}] Testing with prompt: '{test_prompt[:50]}...'")
+
+        result = {
+            "#Cycle": cycle_num,
+            "region": location,
+            "Pro": "N/A",
+            "Flash": "N/A",
+            "Garden Models": garden_model_count
+        }
+
+        # Test Gemini Pro response time - try multiple model names
+        pro_success = False
+        for model_name in MODELS["Pro"]:
+            try:
+                start_time = time.time()
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=test_prompt
+                )
+                end_time = time.time()
+
+                pro_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
+                result["Pro"] = f"{pro_time}ms"
+                print(f"    ✓ Pro ({model_name}): {pro_time}ms")
+                pro_success = True
+                break
+
+            except Exception as e:
+                continue
+
+        if not pro_success:
+            result["Pro"] = "Not Available"
+            print(f"    ✗ Pro: No models available")
+
+        # Test Gemini Flash response time - try multiple model names
+        flash_success = False
+        for model_name in MODELS["Flash"]:
+            try:
+                start_time = time.time()
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=test_prompt
+                )
+                end_time = time.time()
+
+                flash_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
+                result["Flash"] = f"{flash_time}ms"
+                print(f"    ✓ Flash ({model_name}): {flash_time}ms")
+                flash_success = True
+                break
+
+            except Exception as e:
+                continue
+
+        if not flash_success:
+            result["Flash"] = "Not Available"
+            print(f"    ✗ Flash: No models available")
+
+        results.append(result)
+
+    print(f"[{location}] Completed all {NUM_CYCLES} cycles")
 
 # Generate CSV filename with timestamp
 timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M")
@@ -144,7 +155,7 @@ print("\n" + "=" * 60)
 print(f"Writing results to {csv_filename}...")
 
 with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
-    fieldnames = ['region', 'Pro', 'Flash', 'Garden Models']
+    fieldnames = ['#Cycle', 'region', 'Pro', 'Flash', 'Garden Models']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
     writer.writeheader()
@@ -152,14 +163,18 @@ with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
         writer.writerow(result)
 
 print(f"✓ Results saved to {csv_filename}")
+print(f"✓ Total records: {len(results)} ({len(EUROPEAN_LOCATIONS)} regions × {NUM_CYCLES} cycles)")
 print("=" * 60)
 
-# Display summary table
-print("\nSummary:")
-print("-" * 60)
-print(f"{'Region':<20} {'Pro':<15} {'Flash':<15} {'Models':<10}")
-print("-" * 60)
+# Display summary table (showing first cycle for each region)
+print("\nSummary (Cycle 1 results):")
+print("-" * 80)
+print(f"{'Region':<20} {'Cycle':<8} {'Pro':<15} {'Flash':<15} {'Models':<10}")
+print("-" * 80)
 for result in results:
-    print(f"{result['region']:<20} {result['Pro']:<15} {result['Flash']:<15} {result['Garden Models']:<10}")
-print("-" * 60)
-print("\n✓ Benchmark complete!")
+    if result['#Cycle'] == 1:
+        print(
+            f"{result['region']:<20} {result['#Cycle']:<8} {result['Pro']:<15} {result['Flash']:<15} {result['Garden Models']:<10}")
+print("-" * 80)
+print(f"\n✓ Benchmark complete! {len(results)} total measurements recorded.")
+print(f"  ({len(EUROPEAN_LOCATIONS)} regions × {NUM_CYCLES} cycles)")

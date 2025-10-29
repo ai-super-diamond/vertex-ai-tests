@@ -91,10 +91,14 @@ Format: `results-DD-MM-YYYY_HH-MM.csv`
 
 Required columns:
 
+- `#Cycle`: Cycle number (1-N) indicating which test prompt was used, where N = len(TEST_PROMPTS)
 - `region`: Technical region code (e.g., "europe-west1")
 - `Pro`: Gemini 2.5 Pro response time or "Not Available"
 - `Flash`: Gemini 2.5 Flash response time or "Not Available"
 - `Garden Models`: Count of custom models (integer)
+
+**Important:** Each region will have N records (one per cycle), resulting in `N × number_of_regions` total records,
+where N = len(TEST_PROMPTS).
 
 ### PDF Reports
 
@@ -102,11 +106,14 @@ Format: `benchmark-report-DD-MM-YYYY_HH-MM.pdf`
 
 Required sections:
 
-1. Title and timestamp
-2. Executive Summary table
-3. Detailed Regional Performance table with color coding
+1. Title and timestamp (includes "Averaged Results" notation)
+2. Executive Summary table (based on averaged values)
+3. Detailed Regional Performance table with color coding (averaged values)
 4. Key Insights section
-5. Footer with generation info
+5. Footer with generation info (notes averaging across N prompts where N = len(TEST_PROMPTS))
+
+**Important:** The PDF converter automatically calculates averages from all N cycles per region before generating the
+report.
 
 ### Filename Conventions
 
@@ -129,15 +136,31 @@ end_time = time.time()
 response_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
 ```
 
-### Test Prompt
+### Test Prompts
 
-Always use a consistent, minimal prompt:
+The benchmark uses multiple test prompts to ensure comprehensive, reliable results. The number of cycles is
+automatically determined by the length of the TEST_PROMPTS array:
 
 ```python
-TEST_PROMPT = "Hello, respond with just 'OK'"
+TEST_PROMPTS = [
+    "Hello, respond with just 'OK'",
+    "What is 2+2? Answer briefly.",
+    "Name one color.",
+    "Say 'test' in response.",
+    "What day comes after Monday?",
+    "Count from 1 to 3.",
+    "What is the capital of France?",
+    "Translate 'hello' to Spanish.",
+    "What is the opposite of hot?",
+    "Name one programming language."
+]
+
+NUM_CYCLES = len(TEST_PROMPTS)  # Currently 10
 ```
 
-This ensures consistent, comparable results across regions.
+Each region is tested with all prompts in TEST_PROMPTS, and the PDF report shows averaged results for more reliable
+performance metrics. To add or remove test prompts, simply modify the TEST_PROMPTS array - the system will automatically
+adjust.
 
 ## Testing Workflow
 
@@ -230,8 +253,10 @@ Before submitting changes:
     - Opens PDF in browser
 
 2. **Check output files:**
-    - CSV has all expected columns (region, Pro, Flash, Garden Models)
+    - CSV has all expected columns (#Cycle, region, Pro, Flash, Garden Models)
+    - CSV has N records per region (one for each cycle), where N = len(TEST_PROMPTS)
     - PDF has proper formatting and colors
+    - PDF shows averaged values across all cycles
     - Timestamps are consistent (DD-MM-YYYY_HH-MM format)
     - Region codes match city names
 
