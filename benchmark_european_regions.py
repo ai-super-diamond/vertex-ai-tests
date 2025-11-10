@@ -1,4 +1,5 @@
 import csv
+import os
 import time
 from datetime import datetime
 
@@ -70,85 +71,114 @@ for location in EUROPEAN_LOCATIONS:
         location=location
     )
 
-    # Count Garden Models once per region (not per cycle)
-    garden_model_count = 0
     try:
-        print(f"  Counting models...")
-        aiplatform.init(project=PROJECT_ID, location=location)
-        models = aiplatform.Model.list()
-        garden_model_count = len(models)
-        print(f"    ✓ Models: {garden_model_count}")
-    except Exception as e:
-        garden_model_count = "Error"
-        print(f"    ✗ Model count failed: {str(e)[:100]}")
+        # Count Garden Models once per region (not per cycle)
+        garden_model_count = 0
+        try:
+            print(f"  Counting models...")
+            aiplatform.init(project=PROJECT_ID, location=location)
+            models = aiplatform.Model.list()
+            garden_model_count = len(models)
+            print(f"    ✓ Models: {garden_model_count}")
+        except Exception as e:
+            garden_model_count = -1  # Use -1 to indicate error (keeps type as integer)
+            print(f"    ✗ Model count failed: {str(e)[:100]}")
 
-    # Run all prompt cycles for this region
-    for cycle_num, test_prompt in enumerate(TEST_PROMPTS, start=1):
-        print(f"\n  [Cycle {cycle_num}/{NUM_CYCLES}] Testing with prompt: '{test_prompt[:50]}...'")
+        # Run all prompt cycles for this region
+        for cycle_num, test_prompt in enumerate(TEST_PROMPTS, start=1):
+            print(f"\n  [Cycle {cycle_num}/{NUM_CYCLES}] Testing with prompt: '{test_prompt[:50]}...'")
 
-        result = {
-            "#Cycle": cycle_num,
-            "region": location,
-            "Pro": "N/A",
-            "Flash": "N/A",
-            "Garden Models": garden_model_count
-        }
+            result = {
+                "#Cycle": cycle_num,
+                "region": location,
+                "Pro": "Not Available",
+                "Flash": "Not Available",
+                "Garden Models": garden_model_count
+            }
 
-        # Test Gemini Pro response time - try multiple model names
-        pro_success = False
-        for model_name in MODELS["Pro"]:
+            # Test Gemini Pro response time - try multiple model names
+            pro_success = False
+            pro_tried_models = []
+            for model_name in MODELS["Pro"]:
+                try:
+                    pro_tried_models.append(model_name)
+                    start_time = time.time()
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=test_prompt
+                    )
+                    end_time = time.time()
+
+                    # Validate response has content
+                    if not response or not hasattr(response, 'text'):
+                        continue
+
+                    # Verify response text is not empty (at least try to access it)
+                    _ = response.text  # This will raise if response is invalid
+
+                    pro_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
+                    result["Pro"] = f"{pro_time}ms"
+                    print(f"    ✓ Pro ({model_name}): {pro_time}ms")
+                    pro_success = True
+                    break
+
+                except Exception as e:
+                    continue
+
+            if not pro_success:
+                result["Pro"] = "Not Available"
+                print(f"    ✗ Pro: No models available (tried: {', '.join(pro_tried_models)})")
+
+            # Test Gemini Flash response time - try multiple model names
+            flash_success = False
+            flash_tried_models = []
+            for model_name in MODELS["Flash"]:
+                try:
+                    flash_tried_models.append(model_name)
+                    start_time = time.time()
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=test_prompt
+                    )
+                    end_time = time.time()
+
+                    # Validate response has content
+                    if not response or not hasattr(response, 'text'):
+                        continue
+
+                    # Verify response text is not empty (at least try to access it)
+                    _ = response.text  # This will raise if response is invalid
+
+                    flash_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
+                    result["Flash"] = f"{flash_time}ms"
+                    print(f"    ✓ Flash ({model_name}): {flash_time}ms")
+                    flash_success = True
+                    break
+
+                except Exception as e:
+                    continue
+
+            if not flash_success:
+                result["Flash"] = "Not Available"
+                print(f"    ✗ Flash: No models available (tried: {', '.join(flash_tried_models)})")
+
+            results.append(result)
+
+        print(f"[{location}] Completed all {NUM_CYCLES} cycles")
+    finally:
+        # Clean up client resources
+        if hasattr(client, 'close') and callable(getattr(client, 'close')):
             try:
-                start_time = time.time()
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=test_prompt
-                )
-                end_time = time.time()
-
-                pro_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
-                result["Pro"] = f"{pro_time}ms"
-                print(f"    ✓ Pro ({model_name}): {pro_time}ms")
-                pro_success = True
-                break
-
-            except Exception as e:
-                continue
-
-        if not pro_success:
-            result["Pro"] = "Not Available"
-            print(f"    ✗ Pro: No models available")
-
-        # Test Gemini Flash response time - try multiple model names
-        flash_success = False
-        for model_name in MODELS["Flash"]:
-            try:
-                start_time = time.time()
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=test_prompt
-                )
-                end_time = time.time()
-
-                flash_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
-                result["Flash"] = f"{flash_time}ms"
-                print(f"    ✓ Flash ({model_name}): {flash_time}ms")
-                flash_success = True
-                break
-
-            except Exception as e:
-                continue
-
-        if not flash_success:
-            result["Flash"] = "Not Available"
-            print(f"    ✗ Flash: No models available")
-
-        results.append(result)
-
-    print(f"[{location}] Completed all {NUM_CYCLES} cycles")
+                client.close()
+            except:
+                pass  # Ignore cleanup errors
 
 # Generate CSV filename with timestamp
 timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M")
 csv_filename = f"./results/results-{timestamp}.csv"
+
+# Ensure results directory exists
+os.makedirs("./results", exist_ok=True)
 
 # Write results to CSV
 print("\n" + "=" * 60)

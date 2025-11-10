@@ -62,13 +62,16 @@ def convert_csv_to_pdf(csv_file, output_pdf=None):
         timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M")
         output_pdf = f"./results/benchmark-report-{timestamp}.pdf"
 
+    # Ensure results directory exists
+    os.makedirs("./results", exist_ok=True)
+
     # Read CSV data
     raw_data = []
     with open(csv_file, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            # Filter out US regions
-            if not row['region'].startswith('us-'):
+            # Filter out US regions (case-insensitive)
+            if not row['region'].lower().startswith('us-'):
                 raw_data.append(row)
 
     if not raw_data:
@@ -76,7 +79,12 @@ def convert_csv_to_pdf(csv_file, output_pdf=None):
         return
 
     # Determine number of cycles from the data
-    num_cycles = max(int(row['#Cycle']) for row in raw_data)
+    try:
+        num_cycles = max(int(row['#Cycle']) for row in raw_data)
+    except (ValueError, KeyError) as e:
+        print(f"Error: Invalid CSV format. Unable to parse cycle numbers: {e}")
+        print("Expected '#Cycle' column with integer values.")
+        return
 
     # Calculate averages per region across all cycles
     region_data = {}
@@ -300,10 +308,17 @@ def convert_csv_to_pdf(csv_file, output_pdf=None):
         fastest_pro_idx = pro_times.index(min(pro_times_valid))
         fastest_pro_region = REGION_TO_CITY.get(data[fastest_pro_idx]['region'], data[fastest_pro_idx]['region'])
 
+    # Calculate speed comparison ratio (avg_pro / avg_flash)
+    speed_ratio = None
+    if pro_times_valid and flash_times_valid:
+        avg_pro = sum(pro_times_valid) / len(pro_times_valid)
+        avg_flash = sum(flash_times_valid) / len(flash_times_valid)
+        speed_ratio = avg_pro / avg_flash
+
     insights = [
         f"• <b>Fastest Gemini 2.5 Flash:</b> {fastest_flash_region} ({min(flash_times_valid):.2f}ms)" if flash_times_valid else "",
         f"• <b>Fastest Gemini 2.5 Pro:</b> {fastest_pro_region} ({min(pro_times_valid):.2f}ms)" if pro_times_valid else "",
-        f"• <b>Flash is {sum(pro_times_valid) / len(pro_times_valid) / sum(flash_times_valid) * len(flash_times_valid):.1f}x faster</b> than Pro on average" if pro_times_valid and flash_times_valid else "",
+        f"• <b>Flash is {speed_ratio:.1f}x faster</b> than Pro on average" if speed_ratio else "",
         f"• <b>{len(pro_times_valid)} out of {len(data)} regions</b> support Gemini 2.5 Pro",
         f"• <b>{len(flash_times_valid)} out of {len(data)} regions</b> support Gemini 2.5 Flash"
     ]
@@ -345,6 +360,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Sort by modification time and get the latest
+    # Note: This selects the most recently modified file, not necessarily the most recently created
+    # If you edit an old CSV file, it will be selected over newer files
     csv_files.sort(key=lambda x: os.path.getmtime(os.path.join(results_dir, x)), reverse=True)
     latest_csv = os.path.join(results_dir, csv_files[0])
 

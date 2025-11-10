@@ -7,6 +7,8 @@ that the PDF generation works correctly with the multi-cycle format.
 
 import csv
 import os
+import random
+import re
 import sys
 
 from PyPDF2 import PdfReader
@@ -45,7 +47,6 @@ def create_test_csv(filename, num_regions=3, num_cycles=10):
         for region in test_regions:
             for cycle in range(1, num_cycles + 1):
                 # Add some variation to response times (+/- 10%)
-                import random
                 pro_variation = random.uniform(0.9, 1.1)
                 flash_variation = random.uniform(0.9, 1.1)
 
@@ -90,8 +91,9 @@ def verify_pdf_content(pdf_file, expected_cycles):
         for page in reader.pages:
             try:
                 full_text += page.extract_text() or ""
-            except:
-                pass
+            except (AttributeError, TypeError, ValueError) as e:
+                # Ignore text extraction errors for individual pages
+                continue
 
         # If text extraction worked, verify content
         if full_text:
@@ -102,10 +104,12 @@ def verify_pdf_content(pdf_file, expected_cycles):
             has_benchmark = "benchmark" in full_text_lower or "gemini" in full_text_lower
             assert has_benchmark, "PDF doesn't contain expected benchmark content"
 
-            # Assert: Cycle count is mentioned
-            cycle_text = f"{expected_cycles}" in full_text
+            # Assert: Cycle count is mentioned with context
+            # Look for patterns like "across N test" or "N test prompts"
+            cycle_pattern = re.compile(rf'\b{expected_cycles}\s+(test|cycle|prompt)', re.IGNORECASE)
+            cycle_text = cycle_pattern.search(full_text) is not None
             if not cycle_text:
-                print(f"  ⚠ Warning: Could not verify cycle count in PDF text")
+                print(f"  ⚠ Warning: Could not verify cycle count '{expected_cycles}' in PDF text with expected context")
         else:
             # If text extraction failed, just verify PDF structure
             print(f"  ⚠ Warning: Could not extract text from PDF, verifying structure only")
