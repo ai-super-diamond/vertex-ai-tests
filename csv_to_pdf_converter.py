@@ -70,8 +70,8 @@ def convert_csv_to_pdf(csv_file, output_pdf=None):
     with open(csv_file, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            # Filter out US regions
-            if not row['region'].startswith('us-'):
+            # Filter out US regions (case-insensitive)
+            if not row['region'].lower().startswith('us-'):
                 raw_data.append(row)
 
     if not raw_data:
@@ -360,6 +360,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Sort by modification time and get the latest
+    # Note: This selects the most recently modified file, not necessarily the most recently created
+    # If you edit an old CSV file, it will be selected over newer files
     csv_files.sort(key=lambda x: os.path.getmtime(os.path.join(results_dir, x)), reverse=True)
     latest_csv = os.path.join(results_dir, csv_files[0])
 
