@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: vertex-benchmark
+Version: 0.1.0
+Summary: Vertex AI Performance Benchmarking
+Author-email: Your Name <your.email@example.com>
+Requires-Python: >=3.13
+Requires-Dist: google-cloud-aiplatform
+Requires-Dist: streamlit
+Requires-Dist: pandas
+Requires-Dist: matplotlib
+Requires-Dist: seaborn
+Requires-Dist: reportlab
+Requires-Dist: fpdf
+Requires-Dist: pytest
+Requires-Dist: pytest-cov

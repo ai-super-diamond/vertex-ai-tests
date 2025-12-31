@@ -8,14 +8,14 @@ performance reports.
 
 The project offers automated benchmarking tools for Vertex AI Gemini models:
 
-- **Regional Performance Testing:** Measure response times for Gemini 2.5 Pro and Flash across European regions
-- **Multi-Cycle Testing:** Run multiple different prompts per region for comprehensive, averaged results
-- **Model Availability Tracking:** Identify which regions support specific Gemini models
-- **Automated PDF Reports:** Generate elegant, professional PDF reports with color-coded performance metrics
-- **Easy-to-Use Scripts:** Simple command-line tools to run benchmarks and generate reports
+- **Regional Performance Testing:** Measure response times for Gemini 2.5 Pro and Flash.
+- **Multi-Cycle Testing:** Run multiple different prompts per region for comprehensive, averaged results.
+- **Model Availability Tracking:** Identify which regions support specific Gemini models.
+- **Automated PDF Reports:** Generate elegant, professional PDF reports with color-coded performance metrics.
+- **Interactive Dashboard:** Visualize and explore results with a Streamlit web app.
 
 The framework uses the latest Google GenAI SDK and provides real-world performance metrics to help you choose the
-optimal European region for your Gemini deployments. US regions are excluded due to significantly slower performance.
+optimal region for your Gemini deployments.
 
 ## Getting Started
 
@@ -27,45 +27,45 @@ optimal European region for your Gemini deployments. US regions are excluded due
 
 ### Installation
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/vertex-ai-tests.git
-   cd vertex-ai-tests
-   ```
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/vertex-ai-tests.git
+    cd vertex-ai-tests
+    ```
 
-2. **Configure your GCP project:**
+2.  **Configure your GCP project:**
 
-   Edit the `PROJECT_ID` in `benchmark_european_regions.py`:
-   ```python
-   PROJECT_ID = "your-project-id"
-   ```
+    Edit the `PROJECT_ID` in `src/vertex_benchmark/config.py`:
+    ```python
+    PROJECT_ID = "your-project-id"
+    ```
 
-3. **Authenticate with Google Cloud:**
-   ```bash
-   gcloud auth application-default login
-   ```
+3.  **Install dependencies in editable mode:**
+    ```bash
+    pip install -e .
+    ```
+    *(This is the recommended method as it correctly handles the `src` layout)*
 
-**Note:** Dependencies are automatically installed when you run `run-metrics.cmd`. For manual installation, use:
-
-```bash
-pip install -r requirements.txt
-```
+4.  **Authenticate with Google Cloud:**
+    ```bash
+    gcloud auth application-default login
+    ```
 
 ## Usage
 
-### Quick Start - Run Complete Benchmark
+### Quick Start - Automated Workflow
 
 **Windows:**
 
 ```cmd
-run-metrics.cmd
+run-metrics-european.cmd
 ```
 
 This automated script will:
 
-1. **Auto-install dependencies** (if not already installed)
-2. Run benchmarks across all European regions
-3. Generate a CSV file with raw results
+1. **Auto-install dependencies**
+2. Run benchmarks across all specified regions
+3. Store results in a SQLite database
 4. Create an elegant PDF report
 5. Automatically open the PDF in your default browser
 
@@ -73,170 +73,69 @@ This automated script will:
 
 #### 1. Run Regional Benchmarks
 
-Test all European regions:
-
 ```bash
-python benchmark_european_regions.py
-```
-
-Results are saved to `./results/results-DD-MM-YYYY_HH-MM.csv`
+python -m vertex_benchmark.benchmark_engine
+```*Results are saved to `benchmark_results.db`*
 
 #### 2. Generate PDF Reports
 
-Convert the latest CSV to an elegant PDF report:
+```bash
+python -m vertex_benchmark.generate_report
+```
+*The PDF will be saved in the `results/` directory.*
+
+#### 3. Run the Interactive Dashboard
 
 ```bash
-python csv_to_pdf_converter.py
+streamlit run src/vertex_benchmark/dashboard.py
 ```
-
-The PDF includes:
-
-- Executive summary with statistics
-- Color-coded performance table
-- Region codes and city names
-- Key insights and recommendations
 
 ## Project Structure
 
 ```
 vertex-ai-tests/
-├── benchmark_european_regions.py  # Main benchmarking script
-├── csv_to_pdf_converter.py       # PDF report generator
-├── test_pdf_generation.py         # Test script for PDF generation
-├── run-metrics.cmd                # Windows automation script
-├── requirements.txt               # Python dependencies
-├── results/                       # Generated CSV and PDF reports
-│   ├── results-*.csv
-│   └── benchmark-report-*.pdf
-├── test_results/                  # Test output directory (gitignored)
-│   ├── test_*.csv
-│   └── test_report_*.pdf
-├── README.md                      # This file
-└── AGENTS.md                      # AI agent guidelines
-```
-
-## Features
-
-### Regional Benchmarking
-
-Automatically tests Gemini 2.5 Pro and Flash models across **10 European Regions:**
-
-- Belgium (europe-west1)
-- United Kingdom (europe-west2)
-- Germany (europe-west3)
-- Netherlands (europe-west4)
-- Switzerland (europe-west6)
-- Italy (europe-west8)
-- France (europe-west9)
-- Finland (europe-north1)
-- Poland (europe-central2)
-- Spain (europe-southwest1)
-
-**Note:** US regions are not tested as they show significantly slower performance compared to European regions.
-
-### PDF Report Features
-
-- **Executive Summary:** Fastest, average, and slowest response times
-- **Color-Coded Performance:** Green (fast), Yellow (medium), Red (slow)
-- **Regional Details:** City names and region codes
-- **Model Availability:** Track which regions support each model
-- **Professional Design:** Clean, corporate-ready formatting
-
-## Example Output
-
-### CSV Format
-
-The CSV includes all individual measurements with cycle numbers:
-
-```csv
-#Cycle,region,Pro,Flash,Garden Models
-1,europe-west1,2757.05ms,957.13ms,0
-2,europe-west1,2801.23ms,945.67ms,0
-...
-N,europe-west1,2723.45ms,963.89ms,0
-1,europe-west4,3785.89ms,816.24ms,0
-...
-```
-
-Each region is tested multiple times with different prompts (currently 10), resulting in N records per region where N =
-number of test prompts.
-
-### PDF Report
-
-The PDF report shows **averaged results** across all test cycles:
-
-- Title: "Vertex AI Gemini 2.5 Performance Benchmark - Averaged Results"
-- Summary statistics table (based on averages)
-- Detailed performance table with color coding (averaged values)
-- Key insights and fastest regions
-- Professional styling with timestamps
-- Footer note: "Performance measured as averaged end-to-end response time across N test prompts"
-
-## Configuration
-
-### Customizing Regions
-
-Edit `benchmark_european_regions.py` to add or remove regions:
-
-```python
-EUROPEAN_LOCATIONS = [
-    "europe-west1",  # Belgium
-    # Add more regions...
-]
-```
-
-### Customizing Models
-
-Update the models to test:
-
-```python
-MODELS = {
-    "Pro": ["gemini-2.5-pro", "gemini-2.5-pro-exp"],
-    "Flash": ["gemini-2.5-flash", "gemini-2.5-flash-exp"]
-}
-```
-
-## Troubleshooting
-
-### Authentication Issues
-```bash
-gcloud auth application-default login
-```
-
-### Project Not Found
-
-Update `PROJECT_ID` in the script files with your actual GCP project ID.
-
-### Model Not Available
-
-Some regions may not support all Gemini models. The script will mark these as "Not Available" in the results.
-
-### API Not Enabled
-
-Enable the Vertex AI API in your GCP project:
-
-```bash
-gcloud services enable aiplatform.googleapis.com
+├── src/
+│   └── vertex_benchmark/
+│       ├── __init__.py
+│       ├── benchmark_engine.py   # Main benchmarking script
+│       ├── generate_report.py      # PDF report generator
+│       ├── dashboard.py            # Interactive web dashboard
+│       ├── database_utils.py       # Database utility functions
+│       └── ...                     # Other modules
+├── tests/
+│   ├── unit/                     # Unit tests
+│   ├── integration/              # Integration tests
+│   └── e2e/                      # End-to-end tests
+├── .gitignore
+├── pyproject.toml                # Project configuration and dependencies
+├── run-metrics-european.cmd      # Windows automation script
+├── benchmark_results.db          # SQLite database with benchmark results
+├── results/                      # Generated PDF reports
+└── README.md                     # This file
 ```
 
 ## Testing
 
-### Test PDF Generation
+The project uses a structured testing approach with `pytest`.
 
-Run the test script to verify PDF generation with different cycle counts:
+### Running Tests
 
-```bash
-python test_pdf_generation.py
-```
+1.  **Install development dependencies:**
+    ```bash
+    pip install -e ".[dev]"
+    ```
 
-This will create test CSV files and generate PDFs with:
+2.  **Run all tests:**
+    ```bash
+    pytest
+    ```
 
-- 10 cycles (standard)
-- 5 cycles (custom)
-- 1 cycle (edge case)
-- 20 cycles (extended)
-
-Test results are saved to `./test_results/` directory.
+3.  **Run specific test types:**
+    ```bash
+    pytest tests/unit          # Run unit tests only
+    pytest tests/integration   # Run integration tests only
+    pytest tests/e2e           # Run end-to-end tests only
+    ```
 
 ## Contributing
 

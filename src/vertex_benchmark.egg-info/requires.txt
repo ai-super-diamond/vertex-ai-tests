@@ -1,0 +1,9 @@
+google-cloud-aiplatform
+streamlit
+pandas
+matplotlib
+seaborn
+reportlab
+fpdf
+pytest
+pytest-cov

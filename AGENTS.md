@@ -9,158 +9,101 @@ practices.
 This is a benchmarking tool for Google Cloud Vertex AI Gemini models. The project measures performance across different
 regions and generates professional PDF reports. It is NOT a traditional testing framework.
 
+### Repository Layout (high level)
+
+```text
+src/vertex_benchmark/           # Core application modules (source of truth)
+  benchmark_engine.py           # Runs benchmarks and writes to SQLite
+  generate_report.py            # Builds averaged PDF report
+  dashboard.py                  # Streamlit dashboard (optional)
+  database_utils.py             # SQLite helpers (batches + results)
+  config.py                     # Configuration (project, regions, models, prompts, version)
+  report_utils.py               # Stats/percentile helpers
+
+tests/                          # Pytest suites (unit/integration/e2e wrappers)
+.github/workflows/ci.yml        # CI: run pytest, upload PDFs as artifacts
+.pre-commit-config.yaml         # black, isort, flake8 hooks
+pyproject.toml                  # Tooling configuration (black/isort/flake8)
+requirements.txt                # Runtime dependencies
+requirements-dev.txt            # Dev/test/tooling deps (pytest, pre-commit, etc.)
+```
+
 ## Key Components
 
-### 1. Core Scripts
+## Architectural Source of Truth
 
-- **benchmark_european_regions.py**: Main benchmarking script that tests Gemini models across European regions only (US
-  regions excluded due to slower performance)
-- **csv_to_pdf_converter.py**: Converts CSV benchmark results to elegant PDF reports
+**IMPORTANT:** This project follows a standard `src` layout. All core Python modules are located within the `src/vertex_benchmark` package.
 
-### 2. Automation & Configuration
+The `ARCHITECTURE.md` file is the single source of truth for the project's structure, components, and workflow. Before making any changes, you **must** review it to understand how the components interact. All file paths and module locations in this `AGENTS.md` document are derived from the architecture defined therein.
 
-- **run-metrics.cmd**: Windows batch script that automates the complete workflow (dependency installation, benchmarking,
-  PDF generation, and viewing)
-- **requirements.txt**: Python package dependencies
+If you make any changes to the project's structure (e.g., adding, moving, or renaming files), you must update `ARCHITECTURE.md` first.
 
-### 3. Output Directory
+All Python source code is located in the `src/vertex_benchmark` package. For a visual overview of the project structure, please refer to `ARCHITECTURE.md`.
 
-- **results/**: Contains CSV data files and PDF reports with timestamps
+### 1. Core Modules (`src/vertex_benchmark/`)
+
+- **benchmark_engine.py**: Main benchmarking logic.
+- **generate_report.py**: Generates PDF reports from database results.
+- **dashboard.py**: Interactive Streamlit web dashboard.
+
+### 2. Utility Modules (`src/vertex_benchmark/`)
+
+- **database_utils.py**: Handles all SQLite database interactions.
+- **config.py**: Configuration settings (project ID, regions, models, etc.).
+- **report_utils.py**: Helper functions for PDF report generation.
+
+### 3. Automation & Configuration
+
+- **run-metrics-european.cmd**: Windows batch script that automates the complete workflow. Provide analogous PowerShell/Bash scripts if cross‑platform runs are desired.
+- **run-metrics-worldwide.cmd**: Windows batch script to run the worldwide set of regions.
+- **pyproject.toml**: Modern Python package configuration and dependencies.
+- **requirements.txt**: List of dependencies.
+- **requirements-dev.txt**: Development and test dependencies (pytest, pre‑commit, black, flake8, isort).
+
+### 4. Output
+
+- **benchmark_results.db**: SQLite database storing all benchmark results.
+- **results/**: Contains generated PDF reports with timestamps.
+
+Metadata per run is stored in a `batches` table (see Architecture). Reports include conditional footer metadata (batch id, version, started/ended, config summary) when available.
+
+### Utilities (optional)
+
+- `check_all_batches.py`: List and inspect batches and counts.
+- `check_db_regions.py`: Verify region coverage in DB.
+- `generate_pdf_for_batch.py`: Regenerate a report for a specific batch id.
 
 ## Coding Conventions
 
-- **Style Guide:** Python code should follow [PEP 8 style guide](https://www.python.org/dev/peps/pep-0008/)
+- **Style Guide:** Python code should follow [PEP 8 style guide](https://www.python.org/dev/peps/pep-0008/). Pre‑commit enforces black, isort, and flake8.
 - **Naming Conventions:**
-    - Use descriptive variable names (e.g., `EUROPEAN_LOCATIONS`, `flash_time`)
-    - Constants in UPPERCASE with underscores
-    - Functions in lowercase with underscores
-- **Comments:** Add clear comments explaining regional configurations and performance calculations
-- **Error Handling:** Always include try-except blocks for API calls with informative error messages
+  - Use descriptive variable names (e.g., `EUROPEAN_LOCATIONS`, `flash_time`).
+  - Constants in UPPERCASE with underscores.
+  - Functions in lowercase with underscores.
+- **Comments:** Add clear comments explaining regional configurations and performance calculations.
+- **Error Handling:** Always include try-except blocks for API calls with informative error messages.
 
 ## Dependencies
 
-### Current Dependencies
+Runtime dependencies are in `requirements.txt`. Tooling/dev/test dependencies are in `requirements-dev.txt`. Formatting/lint settings live in `pyproject.toml`.
 
-All dependencies are defined in `requirements.txt`:
+To install for development:
 
-- **google-genai**: Google's GenAI SDK for Gemini models (v0.1.0+)
-- **google-cloud-aiplatform**: Vertex AI SDK (v1.38.0+)
-- **reportlab**: PDF generation library (v4.0.0+)
-
-### Adding Dependencies
-
-When adding new dependencies:
-
-1. Add to `requirements.txt` with minimum version
-2. Test with the latest stable version
-3. Update README.md if installation process changes
-4. Ensure compatibility with Python 3.13+
-5. Run `pip install -r requirements.txt` to verify
-
-## Configuration Standards
-
-### Project Configuration
-
-All scripts should include a clearly marked configuration section:
-
-```python
-# --- Configuration ---
-PROJECT_ID = "your-project-id"
-LOCATION = "us-central1"
-# ---------------------
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+pre-commit install
 ```
 
-### Region Management
+### Authentication
 
-- **EUROPEAN_LOCATIONS**: List of 10 European Vertex AI regions with city comments
-- **REGION_TO_CITY**: Mapping dictionary for human-readable city names (CSV to PDF converter)
+The benchmark uses Application Default Credentials (ADC):
 
-**Note:** US regions are intentionally excluded from testing due to significantly slower performance.
-
-When adding new European regions:
-
-1. Add to EUROPEAN_LOCATIONS list with format: `"region-code"  # City`
-2. Update REGION_TO_CITY mapping in csv_to_pdf_converter.py with format: `"Country (City)"`
-3. Test availability before committing
-
-## Output Standards
-
-### CSV Files
-
-Format: `results-DD-MM-YYYY_HH-MM.csv`
-
-Required columns:
-
-- `#Cycle`: Cycle number (1-N) indicating which test prompt was used, where N = len(TEST_PROMPTS)
-- `region`: Technical region code (e.g., "europe-west1")
-- `Pro`: Gemini 2.5 Pro response time or "Not Available"
-- `Flash`: Gemini 2.5 Flash response time or "Not Available"
-- `Garden Models`: Count of custom models (integer)
-
-**Important:** Each region will have N records (one per cycle), resulting in `N × number_of_regions` total records,
-where N = len(TEST_PROMPTS).
-
-### PDF Reports
-
-Format: `benchmark-report-DD-MM-YYYY_HH-MM.pdf`
-
-Required sections:
-
-1. Title and timestamp (includes "Averaged Results" notation)
-2. Executive Summary table (based on averaged values)
-3. Detailed Regional Performance table with color coding (averaged values)
-4. Key Insights section
-5. Footer with generation info (notes averaging across N prompts where N = len(TEST_PROMPTS))
-
-**Important:** The PDF converter automatically calculates averages from all N cycles per region before generating the
-report.
-
-### Filename Conventions
-
-Always use this timestamp format: `DD-MM-YYYY_HH-MM`
-
-```python
-timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M")
+```bash
+gcloud auth application-default login
 ```
+Alternatively, set `GOOGLE_APPLICATION_CREDENTIALS` to a service account JSON.
 
-## Performance Measurement
-
-### Timing Method
-
-Use `time.time()` for end-to-end measurements:
-
-```python
-start_time = time.time()
-response = client.models.generate_content(...)
-end_time = time.time()
-response_time = round((end_time - start_time) * 1000, 2)  # Convert to ms
-```
-
-### Test Prompts
-
-The benchmark uses multiple test prompts to ensure comprehensive, reliable results. The number of cycles is
-automatically determined by the length of the TEST_PROMPTS array:
-
-```python
-TEST_PROMPTS = [
-    "Hello, respond with just 'OK'",
-    "What is 2+2? Answer briefly.",
-    "Name one color.",
-    "Say 'test' in response.",
-    "What day comes after Monday?",
-    "Count from 1 to 3.",
-    "What is the capital of France?",
-    "Translate 'hello' to Spanish.",
-    "What is the opposite of hot?",
-    "Name one programming language."
-]
-
-NUM_CYCLES = len(TEST_PROMPTS)  # Currently 10
-```
-
-Each region is tested with all prompts in TEST_PROMPTS, and the PDF report shows averaged results for more reliable
-performance metrics. To add or remove test prompts, simply modify the TEST_PROMPTS array - the system will automatically
-adjust.
 
 ## Testing Workflow
 
@@ -169,148 +112,79 @@ adjust.
 **Windows:**
 
 ```cmd
-run-metrics.cmd
+run-metrics-european.cmd
 ```
 
 This automated script:
 
-1. Installs dependencies from `requirements.txt`
-2. Runs the full benchmark across all European regions
-3. Generates the PDF report
-4. Opens the PDF automatically
+1. Installs dependencies from `requirements.txt`.
+2. Runs the full benchmark across all European regions.
+3. Generates the PDF report.
+4. Opens the PDF automatically.
 
 ### Manual Testing
 
 1. **Install Dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+    ```bash
+    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
+    pre-commit install
+    ```
 
 2. **Run Full Benchmark:**
-   ```bash
-   python benchmark_european_regions.py
-   ```
+    ```bash
+    python -m vertex_benchmark.benchmark_engine
+    ```
 
 3. **Generate PDF Report:**
-   ```bash
-   python csv_to_pdf_converter.py
-   ```
+    ```bash
+    python -m vertex_benchmark.generate_report
+    ```
 
-## Error Handling Best Practices
+4. **Test the dashboard:**
+    ```bash
+    streamlit run src/vertex_benchmark/dashboard.py
+    ```
 
-### Model Availability
+5. **Run Tests:**
 
-Always try multiple model name variations:
+    ```bash
+    # Run all tests
+    pytest -q
 
-```python
-for model_name in MODELS["Pro"]:
-    try:
-        response = client.models.generate_content(...)
-        # Success - break
-        break
-    except Exception:
-        # Try next variant
-        continue
-```
+    # Run specific test types
+    pytest tests/unit          # Run unit tests only
+    pytest tests/integration   # Run integration tests only
+    pytest tests/e2e           # Run end-to-end tests only
+    ```
 
-### Regional Errors
+The project uses a structured testing approach with three distinct test categories organized in the `tests/` directory:
 
-- Catch and log region-specific failures
-- Mark unavailable models as "Not Available"
-- Continue processing other regions
-- Don't fail entire benchmark due to single region
-
-## PDF Styling Guidelines
-
-### Colors
-
-- **Headers**: `#1a73e8` (Google Blue)
-- **Performance Indicators**:
-    - Green: `Color(0.8, 1, 0.8)` - Top 33%
-    - Yellow: `Color(1, 1, 0.8)` - Middle 33%
-    - Red: `Color(1, 0.9, 0.9)` - Bottom 33%
-
-### Typography
-
-- **Title**: Helvetica-Bold, 24pt
-- **Headers**: Helvetica-Bold, 14pt
-- **Table Headers**: Helvetica-Bold, 10-11pt
-- **Table Data**: Helvetica, 8-9pt
-- **Region Codes**: Courier, 7pt (monospace)
+ - **`tests/unit/`**: Contains isolated unit tests that test individual functions and modules in isolation.
+ - **`tests/integration/`**: Contains integration tests that verify the interaction between different components and modules.
+ - **`tests/e2e/`**: Contains end-to-end tests that simulate real user scenarios, testing the complete application workflow.
+ - **`tests/conftest.py`**: A configuration file that provides shared fixtures and setup code used across all test categories.
 
 ## Verifying Your Work
 
-Before submitting changes:
+Before submitting changes, ensure all checks pass locally and in CI:
+- Pre‑commit passes locally (black/isort/flake8 on staged files).
+- `pytest -q` passes locally.
+- CI (GitHub Actions) runs pytest and uploads PDF artifacts from `results/` and `test_results/`.
 
-1. **Test automated workflow (Windows):**
-   ```cmd
-   run-metrics.cmd
-   ```
-   Verify it:
-    - Installs dependencies successfully
-    - Completes benchmark without errors
-    - Generates PDF correctly
-    - Opens PDF in browser
+## Configuration Guidelines
 
-2. **Check output files:**
-    - CSV has all expected columns (#Cycle, region, Pro, Flash, Garden Models)
-    - CSV has N records per region (one for each cycle), where N = len(TEST_PROMPTS)
-    - PDF has proper formatting and colors
-    - PDF shows averaged values across all cycles
-    - Timestamps are consistent (DD-MM-YYYY_HH-MM format)
-    - Region codes match city names
+Key configuration entries in `src/vertex_benchmark/config.py`:
+- `APP_VERSION`: string version for the app; stored in `batches` and shown in report footer.
+- `PROJECT_ID`: GCP project id.
+- `EUROPEAN_LOCATIONS`: list of region codes.
+- `MODELS`: dict with Pro/Flash variants.
+- `TEST_PROMPTS`: list of prompts; number of cycles derived from its length.
+- `MIN_DELAY_SECONDS` / `MAX_DELAY_SECONDS`: pacing between calls.
 
-3. **Verify dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-   Ensure all packages install without conflicts
+## Error Handling & Performance Practices
 
-## Common Tasks for AI Agents
-
-### Adding a New Region
-
-1. Identify the region code from [GCP documentation](https://cloud.google.com/vertex-ai/docs/general/locations)
-2. Add to appropriate location list (EUROPEAN_LOCATIONS or US_LOCATIONS)
-3. Add mapping to REGION_TO_CITY dictionary
-4. Test the region before committing
-
-### Adding a New Model
-
-1. Add model name variants to MODELS dictionary
-2. Test availability across regions
-3. Update README.md with model information
-4. Consider updating PDF column headers if needed
-
-### Improving Performance Metrics
-
-1. Maintain backward compatibility with existing CSV format
-2. Update both CSV output and PDF generation
-3. Document any new metrics in README.md
-4. Update Executive Summary calculations
-
-## Git Workflow
-
-### Commit Messages
-
-Follow conventional commits format:
-
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation updates
-- `refactor:` Code refactoring
-- `style:` Formatting changes
-
-Examples:
-
-- `feat: Add Asia-Pacific regions to benchmark`
-- `fix: Correct PDF color coding for edge cases`
-- `docs: Update README with new regions`
-
-### Branch Naming
-
-- `feature/region-asia-pacific`
-- `fix/pdf-color-bug`
-- `docs/update-readme`
-
-Make sure all checks pass before requesting a review.
+- Use retries with exponential backoff and reasonable timeouts.
+- Treat region/model unavailability as partial success; continue other tests.
+- Database: use a single connection per run, `journal_mode=WAL`, `synchronous=NORMAL`, and composite index on `(batch_id, region)`.
+- Record batch metadata (`batches` table) with `begin_batch` and `end_batch`.

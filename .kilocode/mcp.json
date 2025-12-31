@@ -1,0 +1,55 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser=",
+        "--headless=",
+        "--viewport-size="
+      ],
+      "disabled": true,
+      "alwaysAllow": []
+    },
+    "Chrome DevTools": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ],
+      "env": {},
+      "alwaysAllow": [
+        "click",
+        "close_page",
+        "drag",
+        "emulate_cpu",
+        "emulate_network",
+        "evaluate_script",
+        "fill",
+        "fill_form",
+        "get_console_message",
+        "get_network_request",
+        "handle_dialog",
+        "hover",
+        "list_console_messages",
+        "list_network_requests",
+        "list_pages",
+        "navigate_page_history",
+        "new_page",
+        "performance_analyze_insight",
+        "performance_start_trace",
+        "performance_stop_trace",
+        "resize_page",
+        "select_page",
+        "take_snapshot",
+        "upload_file",
+        "wait_for"
+      ]
+    }
+  }
+}
