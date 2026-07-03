@@ -14,7 +14,9 @@ def init_database(conn):
             pro_time_ms REAL,
             flash_time_ms REAL,
             garden_models INTEGER,
-            test_prompt TEXT NOT NULL
+            test_prompt TEXT NOT NULL,
+            pro_error TEXT,
+            flash_error TEXT
         )
     """)
     cursor.execute("""
