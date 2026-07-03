@@ -10,3 +10,10 @@
 /results/
 /test_results/
 __pycache__
+
+# Secrets — never commit credentials
+/keys/
+
+# Local benchmark run logs
+benchmark.log
+run_european_log*.txt
