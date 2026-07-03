@@ -11,5 +11,6 @@ Requires-Dist: matplotlib
 Requires-Dist: seaborn
 Requires-Dist: reportlab
 Requires-Dist: fpdf
-Requires-Dist: pytest
-Requires-Dist: pytest-cov
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"

@@ -5,5 +5,7 @@ matplotlib
 seaborn
 reportlab
 fpdf
+
+[dev]
 pytest
 pytest-cov
