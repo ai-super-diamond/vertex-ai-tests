@@ -8,7 +8,7 @@ performance reports.
 
 The project offers automated benchmarking tools for Vertex AI Gemini models:
 
-- **Regional Performance Testing:** Measure response times for Gemini 2.5 Pro and Flash.
+- **Regional Performance Testing:** Measure response times for Gemini Pro and Flash.
 - **Multi-Cycle Testing:** Run multiple different prompts per region for comprehensive, averaged results.
 - **Model Availability Tracking:** Identify which regions support specific Gemini models.
 - **Automated PDF Reports:** Generate elegant, professional PDF reports with color-coded performance metrics.

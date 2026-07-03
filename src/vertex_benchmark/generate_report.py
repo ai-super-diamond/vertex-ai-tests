@@ -159,7 +159,7 @@ def generate_pdf_report(batch_id=None, output_pdf=None):
     )
 
     # Title
-    elements.append(Paragraph("Vertex AI Gemini 2.5 Performance Benchmark", title_style))
+    elements.append(Paragraph("Vertex AI Gemini Performance Benchmark", title_style))
     elements.append(
         Paragraph(f"European Regions - Averaged Results - {datetime.now().strftime('%d %B %Y')}", subtitle_style))
     elements.append(Spacer(1, 0.2 * inch))
@@ -175,7 +175,7 @@ def generate_pdf_report(batch_id=None, output_pdf=None):
     elements.append(Paragraph("Executive Summary", heading_style))
 
     summary_data = [
-        ['Metric', 'Gemini 2.5 Pro', 'Gemini 2.5 Flash'],
+        ['Metric', 'Gemini Pro', 'Gemini Flash'],
         ['Regions Tested', str(len(data)), str(len(data))],
         ['Available In', f"{len(pro_times_valid)} regions", f"{len(flash_times_valid)} regions"],
         ['Fastest Response',
@@ -211,7 +211,7 @@ def generate_pdf_report(batch_id=None, output_pdf=None):
     elements.append(Paragraph("Detailed Regional Performance", heading_style))
 
     # Prepare table data with city names and region codes
-    table_data = [['Location', 'Region Code', 'Gemini 2.5 Pro', 'Gemini 2.5 Flash', 'Status']]
+    table_data = [['Location', 'Region Code', 'Gemini Pro', 'Gemini Flash', 'Status']]
     row_statuses = []
 
     for i, row in enumerate(data):
@@ -332,11 +332,11 @@ def generate_pdf_report(batch_id=None, output_pdf=None):
             ratio_insight = f"• <b>Flash is {ratio_val:.1f}x faster</b> than Pro on average"
 
     insights = [
-        f"• <b>Fastest Gemini 2.5 Flash:</b> {fastest_flash_region} ({min_flash_time:.2f}ms)" if flash_times_valid else "",
-        f"• <b>Fastest Gemini 2.5 Pro:</b> {fastest_pro_region} ({min_pro_time:.2f}ms)" if pro_times_valid else "",
+        f"• <b>Fastest Gemini Flash:</b> {fastest_flash_region} ({min_flash_time:.2f}ms)" if flash_times_valid else "",
+        f"• <b>Fastest Gemini Pro:</b> {fastest_pro_region} ({min_pro_time:.2f}ms)" if pro_times_valid else "",
         ratio_insight,
-        f"• <b>{len(pro_times_valid)} out of {len(data)} regions</b> support Gemini 2.5 Pro",
-        f"• <b>{len(flash_times_valid)} out of {len(data)} regions</b> support Gemini 2.5 Flash"
+        f"• <b>{len(pro_times_valid)} out of {len(data)} regions</b> support Gemini Pro",
+        f"• <b>{len(flash_times_valid)} out of {len(data)} regions</b> support Gemini Flash"
     ]
 
     # Append statistical insights for Pro and Flash

@@ -61,8 +61,8 @@ def test_translation_functions():
     print("Testing translation functions...")
     
     # Test Slovak translation
-    assert translate('title', 'sk') == 'Vertex AI Gemini 2.5 Výkonnostné Testy'
-    assert translate('title', 'en') == 'Vertex AI Gemini 2.5 Performance Tests'
+    assert translate('title', 'sk') == 'Vertex AI Gemini Výkonnostné Testy'
+    assert translate('title', 'en') == 'Vertex AI Gemini Performance Tests'
     
     # Test Slovak datetime formatting
     test_dt = "2025-10-30T17:00:00.000Z"

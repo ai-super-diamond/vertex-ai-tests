@@ -60,7 +60,7 @@ def _current_plotly_template() -> str:
 
 # Translation dictionary
 TRANSLATIONS = {
-    'title': {'sk': 'Vertex AI Gemini 2.5 Výkonnostné Testy', 'en': 'Vertex AI Gemini 2.5 Performance Tests'},
+    'title': {'sk': 'Vertex AI Gemini Výkonnostné Testy', 'en': 'Vertex AI Gemini Performance Tests'},
     'select_region': {'sk': 'Vyberte región', 'en': 'Select Region'},
     'batch_date': {'sk': 'Dátum testu', 'en': 'Test Date'},
     'region': {'sk': 'Región', 'en': 'Region'},

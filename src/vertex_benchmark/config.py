@@ -62,10 +62,10 @@ WORLDWIDE_LOCATIONS = [
     "us-west4",        # Las Vegas
 ]
 
-# Models to test - Gemini 2.5 Pro and Flash
+# Models to test - Gemini Pro and Flash
 MODELS = {
-    "Pro": ["gemini-2.5-pro", "gemini-2.5-pro-exp", "gemini-2.5-pro-002", "gemini-pro-2.5"],
-    "Flash": ["gemini-2.5-flash", "gemini-2.5-flash-exp", "gemini-2.5-flash-002", "gemini-flash-2.5"]
+    "Pro": ["gemini-3.1-pro-preview"],
+    "Flash": ["gemini-3.5-flash"]
 }
 
 # Test prompts - 2 prompts for faster benchmarking
